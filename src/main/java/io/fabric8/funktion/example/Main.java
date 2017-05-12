@@ -16,18 +16,45 @@
  */
 package io.fabric8.funktion.example;
 
+import java.util.stream.Collectors;
+
 import org.apache.camel.Header;
+import org.kie.api.KieServices;
+import org.kie.api.runtime.KieContainer;
+import org.kie.dmn.api.core.DMNContext;
+import org.kie.dmn.api.core.DMNModel;
+import org.kie.dmn.api.core.DMNResult;
+import org.kie.dmn.api.core.DMNRuntime;
+import org.springframework.beans.factory.annotation.Value;
 
-/**
- */
 public class Main {
-
-    public Object main(String body, @Header("name") String name) {
-        if (name != null) {
-            return "Hello " + name + ". I got payload `" + body + "` and I am on host: " + System.getenv("HOSTNAME");
+    final static DMNRuntime runtime;
+    static {
+        KieServices kieServices = KieServices.Factory.get();
+        KieContainer kContainer = kieServices.getKieClasspathContainer();
+        runtime = kContainer.newKieSession().getKieRuntime(DMNRuntime.class);
+    }
+    
+    public Object main(String body, @Header("model") String model, @Header("my_input") String my_input) {
+        if (model != null) {
+            if ( my_input == null) {
+                return "missing URL param 'my_input'";
+            }
+            
+            DMNModel dmnModel = runtime.getModels().stream().filter(m -> m.getName().equals(model)).findFirst().get();
+            
+            DMNContext dmnContext = runtime.newContext();
+            dmnContext.set("My Input", my_input);
+            
+            DMNResult dmnResult = runtime.evaluateAll(dmnModel, dmnContext);
+            
+            System.out.println(dmnResult.getContext().toString());
+            
+            return dmnResult.getContext().toString();
         } else {
-            return "What is your name? Specify a name using ?name=foo as query parameter. I am on host: " + System.getenv("HOSTNAME");
+            return "Use ?model=<name> by selecting from these models: " + runtime.getModels().stream().map(DMNModel::getName).collect(Collectors.joining(",")) + ".";
         }
     }
 
 }
+    

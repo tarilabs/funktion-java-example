@@ -51,12 +51,22 @@ public class LocalRestTest {
 
     @Test
     public void testFunktionEndpoint() throws Exception {
-        String name = "James";
+        String name = "Matteo";
         when()
-                .get("/?name=" + name)
+                .get("/?model=m0001&my_input=" + name)
                 .then()
                 .statusCode(HttpURLConnection.HTTP_OK)
                 .body(containsString("Hello " + name));
+        when()
+                .get("/?model=m0002&my_input=" + name)
+                .then()
+                .statusCode(HttpURLConnection.HTTP_OK)
+                .body(containsString("Ciao " + name));
+        when()
+                .get("/")
+                .then()
+                .statusCode(HttpURLConnection.HTTP_OK)
+                .body(containsString("Use ?model=<name> by selecting from these models"));
     }
 
 }
